@@ -1,6 +1,8 @@
 import streamlit as st
 import calendar
 
+st.set_page_config(layout="wide")
+
 st.title("Employee Shift Calendar - Monthly View (AM/PM)")
 
 # --------------------
