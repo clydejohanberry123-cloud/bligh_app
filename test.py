@@ -1,78 +1,80 @@
-# import streamlit as st 
-# from streamlit_calendar import calendar 
-
-# st.set_page_config(layout='wide')
-
-# st.header('Hello World')
-
-# st.markdown('This is a test!')
-
-
-
-# calendar(
-#     events=[],
-#     options={
-#         "height": "auto",         # full height
-#         "expandRows": True,
-#         "initialView": "dayGridMonth",
-#         "headerToolbar": {
-#             "left": "prev,next today",
-#             "center": "title",
-#             "right": "dayGridMonth,timeGridWeek"
-#         },
-#         "slotDuration": "12:00:00",
-#         "slotLabelFormat": {
-#             "hour": "numeric",
-#             "minute": "2-digit",
-#             "meridiem": "short"     
-#         },
-#     },
-# )
-
 import streamlit as st
-import streamlit.components.v1 as components
+import calendar
 
-st.set_page_config(layout="wide")
-st.title("Employee Shift Calendar")
+st.title("Employee Shift Calendar - Monthly View (AM/PM)")
 
-html_code = """
-<!DOCTYPE html>
-<html>
-  <head>
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.8/main.global.min.js'></script>
-    <style>
-      body { margin: 0; padding: 0; font-family: Arial, Helvetica; }
-      #calendar { max-width: 100%; margin: 0 auto; }
-    </style>
-  </head>
-  <body>
-    <div id='calendar'></div>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
+# --------------------
+# Year & Month selectors side by side
+# --------------------
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+with col1:
+    year = st.number_input("Select Year", min_value=2000, max_value=2100, value=2026, step=1)
+with col2:
+    month = st.selectbox(
+        "Select Month", 
+        options=list(range(1, 13)),
+        format_func=lambda x: calendar.month_name[x]
+    )
 
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'resourceTimelineWeek',
-          resourceAreaHeaderContent: 'Employees',
-          resources: [
-            { id: 'bligh', title: 'Bligh' },
-            { id: 'chris', title: 'Chris' },
-            { id: 'james', title: 'James' }
-          ],
-          events: [
-            { id: '1', resourceId: 'bligh', title: 'Surgical', start: '2026-03-26', end: '2026-03-26', color: 'green' },
-            { id: '2', resourceId: 'chris', title: 'Leave', start: '2026-03-27', end: '2026-03-27', color: 'red' }
-          ],
-          height: 'auto'
-        });
+# --------------------
+# Employees and example shift data
+# --------------------
+employees = ["Berry", "Parker", "Charles", "Abeysuriya", "Foo", "O'Niell"]
 
-        calendar.render();
-      });
-    </script>
-  </body>
-</html>
-"""
+shift_data = {
+    ("Berry", f"{year}-03-01", "AM"): "Surgical 1",
+    ("James", f"{year}-03-01", "PM"): "Placenta 1",
+    ("Bligh", f"{year}-03-01", "AM"): "Surgical 2",
+    ("Bligh", f"{year}-03-01", "PM"): "Placenta 2",
+    ("Kate", f"{year}-03-01", "AM"): "Surgical 3",
+    ("Kate", f"{year}-03-01", "PM"): "Placenta 3",
 
-components.html(html_code, height=600, scrolling=True)
+    ("Adam", f"{year}-03-02", "AM"): "Annual Leave",
+    ("Chris", f"{year}-03-03", "PM"): "Surgical 2",
+}
+
+shift_colors = {
+    "Surgical 1": "#FFD700",
+    "Surgical 2": "#FFA500",
+    "Placenta 1": "#ADD8E6",
+    "Annual Leave": "#90EE90"
+}
+
+# --------------------
+# Build calendar
+# --------------------
+cal = calendar.Calendar(firstweekday=0)  # Monday first
+html = "<div style='display: grid; grid-template-columns: repeat(7, 1fr); gap:5px;'>"
+
+# Weekday headers
+weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+for wd in weekdays:
+    html += f"<div style='font-weight:bold; text-align:center;'>{wd}</div>"
+
+# Days
+for day in cal.itermonthdays(year, month):
+    if day == 0:
+        html += "<div></div>"  # empty padding
+    else:
+        html += "<div style='border:1px solid #ccc; min-height:80px; padding:2px; font-size:12px;'>"
+        html += f"<div style='font-weight:bold; margin-bottom:2px;'>{day}</div>"
+        
+        # AM/PM columns
+        html += "<div style='display:grid; grid-template-columns: 1fr 1fr; gap:2px;'>"
+        for slot in ["AM", "PM"]:
+            html += f"<div style='border-top:1px solid #ccc; padding:1px; min-height:40px;'>"
+            html += f"<div style='font-size:10px; font-weight:bold;'>{slot}</div>"
+            for emp in employees:
+                date_str = f"{year}-{month:02d}-{day:02d}"
+                shift = shift_data.get((emp, date_str, slot), "")
+                if shift:
+                    color = shift_colors.get(shift, "#eee")
+                    html += f"<div style='background:{color}; margin:1px 0; padding:1px; border-radius:2px;'>"
+                    html += f"{emp}: {shift}</div>"
+            html += "</div>"
+        html += "</div>"  # close AM/PM grid
+        html += "</div>"  # close day box
+
+html += "</div>"  # close calendar grid
+
+st.markdown(html, unsafe_allow_html=True)
